@@ -21,7 +21,7 @@ namespace TimetibleMicroservices.Models.DBModels
 
         public string AuditoreNumber { get; set; }
 
-
+        public bool IsDeleted { get; set; }
         public string InfoForLectural { get; set; }
         public string InfoForEngeneers { get; set; }
         public string InfoForcadets { get; set; }

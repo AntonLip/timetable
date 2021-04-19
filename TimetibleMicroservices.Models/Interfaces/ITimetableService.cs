@@ -12,5 +12,8 @@ namespace TimetibleMicroservices.Models.Interfaces
         Task<LessonDto> DeleteTimetable(Guid id, CancellationToken cancellationToken = default);
         Task<IEnumerable<LessonDto>> GetTimetable(CancellationToken cancellationToken = default);        
         Task<LessonDto> GetLessonById(Guid id, CancellationToken cancellationToken = default);
+        Task<LessonDto> DeleteLesson(Guid id, CancellationToken cancellationToken = default);
+        Task<IEnumerable<LessonDto>> GetFilteredTimetable(LessonFilter lessonFilter, CancellationToken cancellationToken = default);
+
     }
 }

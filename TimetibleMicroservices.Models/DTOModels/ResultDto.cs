@@ -1,8 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+﻿using System.Collections.Generic;
 
-namespace TimetibleMicroservices.Models
+namespace TimetibleMicroservices.Models.DTOModels
 {
     public class ResultDto<TModel>
     {

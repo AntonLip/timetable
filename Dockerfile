@@ -6,7 +6,7 @@ EXPOSE 80
 
 FROM mcr.microsoft.com/dotnet/sdk:3.1 AS build
 WORKDIR /src
-COPY ["TimetibleMicroservices.csproj", "TimetibleMicroservices/"]
+COPY ["TimetibleMicroservices/TimetibleMicroservices.csproj", "TimetibleMicroservices/"]
 RUN dotnet restore "TimetibleMicroservices/TimetibleMicroservices.csproj"
 COPY . .
 WORKDIR "/src/TimetibleMicroservices"

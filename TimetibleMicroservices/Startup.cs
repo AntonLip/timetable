@@ -6,7 +6,10 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.OpenApi.Models;
 using System;
 using System.Threading.Tasks;
+using TimetibleMicroservices.DataAccess;
+using TimetibleMicroservices.Models.Interfaces;
 using TimetibleMicroservices.Models.SettingsClass;
+using TimetibleMicroservices.Services;
 
 namespace TimetibleMicroservices
 {
@@ -45,6 +48,10 @@ namespace TimetibleMicroservices
 
             services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
             services.AddControllers();
+
+
+            services.AddScoped<ITimetableRepository, TimetableRepository>();
+            services.AddScoped<ITimetableService, TimetableService>();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

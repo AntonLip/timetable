@@ -9,7 +9,7 @@ using TimetibleMicroservices.Models.SettingsClass;
 
 namespace TimetibleMicroservices.DataAccess
 {
-    class BaseRepository<TModel> : IRepository<TModel, Guid>
+    public class BaseRepository<TModel> : IRepository<TModel, Guid>
         where TModel : IEntity<Guid>
     {
 
@@ -23,29 +23,35 @@ namespace TimetibleMicroservices.DataAccess
             _mongoClient = new MongoClient(_mongoDbSettings.ConnectionString);
             _database = _mongoClient.GetDatabase(_mongoDbSettings.DatabaseName);
         }
-        public Task AddAsync(TModel obj, CancellationToken cancellationToken = default)
+        public virtual Task AddAsync(TModel obj, CancellationToken cancellationToken = default)
         {
-            throw new NotImplementedException();
+            return GetCollection().InsertOneAsync(obj, cancellationToken);
         }
 
-        public Task<IEnumerable<TModel>> GetAllAsync(CancellationToken cancellationToken = default)
+        public virtual async Task<IEnumerable<TModel>> GetAllAsync(CancellationToken cancellationToken = default)
         {
-            throw new NotImplementedException();
+            return await GetCollection().Find(Builders<TModel>.Filter.Empty).ToListAsync(cancellationToken);
         }
 
-        public Task<TModel> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
+        public virtual async Task<TModel> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
         {
-            throw new NotImplementedException();
+            return await GetCollection().Find(Builders<TModel>.Filter.Eq(new ExpressionFieldDefinition<TModel, Guid>(x => x.Id), id)).FirstAsync(cancellationToken);
         }
 
-        public Task<TModel> RemoveAsync(Guid id, CancellationToken cancellationToken = default)
+        public virtual Task<TModel> RemoveAsync(Guid id, CancellationToken cancellationToken = default)
         {
-            throw new NotImplementedException();
+            
+            return GetCollection().FindOneAndDeleteAsync<TModel>(Builders<TModel>.Filter.Eq(new ExpressionFieldDefinition<TModel, Guid>(x => x.Id), id), cancellationToken: cancellationToken);
         }
 
-        public Task UpdateAsync(Guid id, TModel obj, CancellationToken cancellationToken = default)
+        public virtual Task UpdateAsync(Guid id, TModel obj, CancellationToken cancellationToken = default)
         {
-            throw new NotImplementedException();
+            return GetCollection().ReplaceOneAsync(Builders<TModel>.Filter.Eq(new ExpressionFieldDefinition<TModel, Guid>(x => x.Id), id), obj, new ReplaceOptions(), cancellationToken);
+
+        }
+        protected IMongoCollection<TModel> GetCollection()
+        {
+            return _database.GetCollection<TModel>(typeof(TModel).Name);
         }
     }
 }

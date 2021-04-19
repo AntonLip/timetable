@@ -1,16 +1,21 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using ExadelBonusPlus.WebApi;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Swashbuckle.AspNetCore.Annotations;
+using System;
+using System.Collections.Generic;
 using System.Net;
 using System.Threading.Tasks;
-using TimetibleMicroservices.Models;
 using TimetibleMicroservices.Models.DTOModels;
 using TimetibleMicroservices.Models.Interfaces;
+using TimetibleMicroservices.WebApi;
 
 namespace TimetibleMicroservices.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [ExceptionFilter]
+    [HttpModelResultFilter]
     public class TimetableController : ControllerBase
     {
 
@@ -22,13 +27,50 @@ namespace TimetibleMicroservices.Controllers
             _timetableService = timetableService;
             _logger = logger;
         }
+
         [HttpPost]
-        [SwaggerResponse((int)HttpStatusCode.OK, Description = "Add history", Type = typeof(ResultDto<LessonDto>))]
+        [Route("addlesson")]
+        [SwaggerResponse((int)HttpStatusCode.OK, Description = "Add lesson", Type = typeof(ResultDto<LessonDto>))]
         [SwaggerResponse((int)HttpStatusCode.InternalServerError)]
         public async Task<ActionResult<LessonDto>> AddLesson([FromBody] AddLessonDto lesson)
         {
             var result = await _timetableService.AddLesson(lesson);
             return Ok(result);
+        }
+
+        [HttpGet]
+        [Route("lesson/{lessonId:Guid}")]
+        [SwaggerResponse((int)HttpStatusCode.OK, Description = "Get lesson by id", Type = typeof(ResultDto<LessonDto>))]
+        [SwaggerResponse((int)HttpStatusCode.InternalServerError)]
+        public async Task<ActionResult<LessonDto>> GetLessonById([FromRoute] Guid lessonId)
+        {
+            var result = await _timetableService.GetLessonById(lessonId);
+            return Ok(result);
+        }
+
+        [HttpGet]
+        [SwaggerResponse((int)HttpStatusCode.OK, Description = "Get full timetable", Type = typeof(ResultDto<List<LessonDto>>))]
+        [SwaggerResponse((int)HttpStatusCode.InternalServerError)]
+        public async Task<ActionResult<ResultDto<IEnumerable<LessonDto>>>> GetTimetable()
+        {
+            return Ok(await _timetableService.GetTimetable());
+        }
+
+        [HttpDelete]
+        [Route("lesson/{lessonId:Guid}")]
+        [SwaggerResponse((int)HttpStatusCode.OK, Description = "Delete lesson", Type = typeof(ResultDto<List<LessonDto>>))]
+        [SwaggerResponse((int)HttpStatusCode.InternalServerError)]
+        public async Task<ActionResult<ResultDto<IEnumerable<LessonDto>>>> RemoveLessonBuId([FromRoute] Guid lessonId)
+        {
+            return Ok(await _timetableService.DeleteLesson(lessonId));
+        }
+        [HttpGet]
+        [Route("lesson/filtered")]
+        [SwaggerResponse((int)HttpStatusCode.OK, Description = "Get filtered lessons", Type = typeof(ResultDto<List<LessonDto>>))]
+        [SwaggerResponse((int)HttpStatusCode.InternalServerError)]
+        public async Task<ActionResult<ResultDto<IEnumerable<LessonDto>>>> GetFilteredLessons([FromBody] LessonFilter lessonFilter)
+        {
+            return Ok(await _timetableService.GetFilteredTimetable(lessonFilter));
         }
     }
 }
