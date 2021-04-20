@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Microsoft.AspNetCore.Http;
+using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
@@ -14,6 +15,6 @@ namespace TimetibleMicroservices.Models.Interfaces
         Task<LessonDto> GetLessonById(Guid id, CancellationToken cancellationToken = default);
         Task<LessonDto> DeleteLesson(Guid id, CancellationToken cancellationToken = default);
         Task<IEnumerable<LessonDto>> GetFilteredTimetable(LessonFilter lessonFilter, CancellationToken cancellationToken = default);
-
+        Task<int> CreateTimetableFromFile(IFormFile body, CancellationToken cancellationToken = default);
     }
 }

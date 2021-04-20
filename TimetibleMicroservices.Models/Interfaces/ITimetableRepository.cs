@@ -11,5 +11,7 @@ namespace TimetibleMicroservices.Models.Interfaces
     public interface ITimetableRepository : IRepository<Lesson, Guid>
     {
         Task<IEnumerable<Lesson>> GetFilteredAsync(LessonFilter LessonFilter, CancellationToken cancellationToken = default);
+        Task InsertManyLesson(List<Lesson> lessons, CancellationToken cancellationToken = default);
+        Task DeleteAllLessons(CancellationToken cancellationToken);
     }
 }
