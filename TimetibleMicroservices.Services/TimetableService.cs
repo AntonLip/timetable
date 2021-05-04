@@ -30,7 +30,7 @@ namespace TimetibleMicroservices.Services
         {
             if (model is null)
             {
-                throw new ArgumentNullException();
+                throw new ArgumentNullException("", Resource.ModelIsEmpty);
             }
             var lesson = _mapper.Map<Lesson>(model);
             await _timetableRepository.AddAsync(lesson, cancellationToken);
@@ -41,12 +41,12 @@ namespace TimetibleMicroservices.Services
         {
             if (id == Guid.Empty)
             {
-                throw new ArgumentNullException();
+                throw new ArgumentNullException("", Resource.IdIsEmpty);
             }
             var returnModel = await _timetableRepository.GetByIdAsync(id);
             if (returnModel is null)
             {
-                throw new ArgumentNullException();
+                throw new ArgumentNullException("", Resource.FindByIdError);
             }
 
             await _timetableRepository.RemoveAsync(id, cancellationToken);
@@ -59,28 +59,33 @@ namespace TimetibleMicroservices.Services
         {
             if (id == Guid.Empty)
             {
-                throw new ArgumentNullException();
+                throw new ArgumentNullException("", Resource.IdIsEmpty);
             }
 
             var lesson = await _timetableRepository.RemoveAsync(id, cancellationToken);
             return !(lesson is null) ? _mapper.Map<LessonDto>(lesson) : throw new ArgumentNullException();
         }
 
-        public async Task<IEnumerable<LessonDto>> GetFilteredTimetable(LessonFilter lessonFilter, CancellationToken cancellationToken = default)
+        public async Task<IEnumerable<IEnumerable<LessonDto>>> GetFilteredTimetable(LessonFilter lessonFilter, CancellationToken cancellationToken = default)
         {
             if (lessonFilter is null)
             {
                 throw new ArgumentNullException();
             }
             var lessons = await _timetableRepository.GetFilteredAsync(lessonFilter, cancellationToken);
-            return lessons is null ? throw new ArgumentNullException() : _mapper.Map<List<LessonDto>>(lessons);
+            if(lessons is null)
+            {
+                throw new ArgumentNullException();
+            }
+            var lessonDto = _mapper.Map<List<LessonDto>>(lessons);
+            return lessonDto.GroupBy(g => g.LessonDate).Select(g => g.ToList());
         }
 
         public async Task<LessonDto> GetLessonById(Guid id, CancellationToken cancellationToken = default)
         {
             if (id == Guid.Empty)
             {
-                throw new ArgumentNullException();
+                throw new ArgumentNullException("", Resource.IdIsEmpty);
             }
             var lesson = await _timetableRepository.GetByIdAsync(id, cancellationToken);
             return !(lesson is null) ? _mapper.Map<LessonDto>(lesson) : throw new ArgumentNullException();
@@ -95,19 +100,35 @@ namespace TimetibleMicroservices.Services
         public async Task<int> CreateTimetableFromFile(IFormFile body, CancellationToken cancellationToken = default)
         {
             if (body == null || body.Length == 0)
-                throw new ArgumentNullException();
+                throw new ArgumentNullException("", Resource.ModelIsEmpty);
 
             string fileExtension = Path.GetExtension(body.FileName);
             if (fileExtension != ".xls" && fileExtension != ".xlsx")
-                throw new ArgumentException();
+                throw new ArgumentException("", Resource.ValidationError);
 
             int count = 0;
-           await _timetableRepository.DeleteAllLessons(cancellationToken);
+            
+
+            string groupNumber = String.Empty;
+            string disciplineName = String.Empty;
+            string lecturalName = String.Empty;
+            int numberOfWeek = 0;
+            string dayOfWeek = String.Empty;
+            int dayInWeekNumber = 0;
+            DateTime lessonDate = DateTime.Now;
+            int lessonInDayNumber = 0;
+            string lessonType = String.Empty;
+            int lessonNumber = 0;
+            string auditoreNumber = String.Empty;
+            await _timetableRepository.DeleteAllLessons(cancellationToken);
+           
             using (var memoryStream = new MemoryStream())
             {
+                List<Lesson> lessons = new List<Lesson>();
                 await body.CopyToAsync(memoryStream);
                 using (var document = SpreadsheetDocument.Open(memoryStream, true))
                 {
+                    
                     //create the object for workbook part  
                     WorkbookPart wbPart = document.WorkbookPart;
                     //statement to get the count of the worksheet  
@@ -118,13 +139,14 @@ namespace TimetibleMicroservices.Services
                     Worksheet Worksheet = ((WorksheetPart)wbPart.GetPartById(mysheet.Id)).Worksheet;
                     //statement to get the sheetdata which contains the rows and cell in table  
                     IEnumerable<Row> Rows = Worksheet.GetFirstChild<SheetData>().Descendants<Row>();
+
                     //Loop through the Worksheet rows
                     foreach (var row in Rows)
                     {
                         if (row.RowIndex.Value != 0)
                         {
                             //var qq = Program.GetSharedStringItemById(wbPart ,0);
-                            var lesson = new Lesson();
+                           
                             int idx = 1; int idy = 0;
                             foreach (Cell cell in row.Descendants<Cell>())
                             {
@@ -138,18 +160,18 @@ namespace TimetibleMicroservices.Services
                                     {
                                         int x;
                                         Int32.TryParse(val, out x);
-                                        lesson.NumberOfWeek = x;
+                                        numberOfWeek = x;
                                     }
                                     if (idx == 2)
                                     {
-                                        lesson.DayOfWeek = val;
+                                        dayOfWeek = val;
                                     }
 
                                     if (idx == 3)
                                     {
                                         int x;
                                         Int32.TryParse(val, out x);
-                                        lesson.DayInWeekNumber = x;
+                                        dayInWeekNumber = x;
                                     }
                                     if (idx == 4)
                                     {
@@ -182,19 +204,19 @@ namespace TimetibleMicroservices.Services
                                             case "ФЕВРАЛЯ":
                                                 month = 2; break;
 
-                                            case "МАРТ":
+                                            case "МАРТА":
                                                 month = 3; break;
 
-                                            case "АПРЕЛЬ":
+                                            case "АПРЕЛЯ":
                                                 month = 4; break;
 
-                                            case "МАЙ":
+                                            case "МАЯ":
                                                 month = 5; break;
 
-                                            case "ИЮНЬ":
+                                            case "ИЮНЯ":
                                                 month = 6; break;
 
-                                            case "ИЮЛЬ":
+                                            case "ИЮЛЯ":
                                                 month = 7; break;
 
                                             case "АВГУСТА":
@@ -204,13 +226,13 @@ namespace TimetibleMicroservices.Services
 
                                         }
                                         DateTime dateTime = new DateTime(year, month, day);
-                                        lesson.LessonDate = dateTime;
+                                        lessonDate = dateTime;
                                     }
                                     if (idx == 5)
                                     {
                                         int x;
                                         Int32.TryParse(val, out x);
-                                        lesson.LessonInDayNumber = x;
+                                        lessonInDayNumber = x;
                                     }
                                     if (idx == 7)
                                     {
@@ -226,11 +248,11 @@ namespace TimetibleMicroservices.Services
                                     idy++;
                                     if (idy == 1)
                                     {
-                                        lesson.GroupNumber = val;
+                                        groupNumber = val;
                                     }
                                     if (idy == 2)
                                     {
-                                        lesson.DisciplineName = val;
+                                        disciplineName = val;
                                     }
 
                                     if (idy == 3)
@@ -239,35 +261,55 @@ namespace TimetibleMicroservices.Services
                                         if (val != "" && val != "ОХРАНА" && val != "ПРАЗДНИК")
                                         {
                                             string[] z = val.Split(' ');
-                                            lesson.LessonType = z[0];
+                                            lessonType = z[0];
                                             Int32.TryParse(z[z.Length - 1], out x);
-                                            lesson.LessonNumber = x;
+                                            lessonNumber = x;
                                         }
                                     }
                                     if (idy == 4)
                                     {
-                                        lesson.LecturalName = val;
+                                        lecturalName = val;
                                     }
                                     if (idy == 5)
                                     {
                                         if (val != null)
-                                            lesson.AuditoreNumber = val;
+                                            auditoreNumber = val;
                                         else
-                                            lesson.AuditoreNumber = "";
+                                            auditoreNumber = "";
                                     }
                                     if (idy == 7)
                                     {
                                         idy = 0;
                                         //await sendLessonToAPIAsync(lesson);
-                                        if (lesson.GroupNumber != "431А" && lesson.GroupNumber != "431Б" &&
-                                            lesson.GroupNumber != "441А" && lesson.GroupNumber != "441Б" &&
-                                            lesson.GroupNumber != "451А" && lesson.GroupNumber != "451Б")
+                                        if (groupNumber != "431А" && groupNumber != "431Б" &&
+                                            groupNumber != "441А" && groupNumber != "441Б" &&
+                                            groupNumber != "451А" && groupNumber != "451Б")
                                         {
-                                            Console.WriteLine(lesson.ToString());
-                                            if (lesson.LecturalName != "" && lesson.DisciplineName != "")
+                                           
+                                            if (lecturalName != "" && disciplineName != "")
                                                 try
                                                 {
-                                                   await _timetableRepository.AddAsync(lesson);                                                   
+                                                    
+                                                    lessons.Add(new Lesson()
+                                                    {
+                                                        AuditoreNumber = auditoreNumber,
+                                                        DayInWeekNumber = dayInWeekNumber,
+                                                        DayOfWeek = dayOfWeek,
+                                                        DisciplineName = disciplineName,
+                                                        GroupNumber = groupNumber,
+                                                        IsDeleted = false,
+                                                        LecturalName = lecturalName,
+                                                        InfoForcadets = null,
+                                                        InfoForEngeneers = null,
+                                                        InfoForLectural = null,
+                                                        LessonDate = lessonDate,
+                                                        LessonInDayNumber = lessonInDayNumber,
+                                                        LessonNumber = lessonNumber,
+                                                        LessonType = lessonType,
+                                                        NumberOfWeek = numberOfWeek
+                                                    });
+                                                    
+                                                    
                                                 }
                                                 catch (Exception e)
                                                 {
@@ -279,14 +321,43 @@ namespace TimetibleMicroservices.Services
                                 }
                                 idx++;
                             }
-                            count = idx;
+                            //count = idx;
+                           
                         }
+                        
                     }
+                    
+                }
+                if (lessons.Count != 0)
+                {
+                    await _timetableRepository.InsertManyLesson(lessons);
+                    count = lessons.Count;
                 }
             }
-            return count == 0 ? throw new ArgumentNullException() : count;
+            
+            return count == 0 ? throw new ArgumentNullException("", Resource.UpdateError) : count ;
         }
 
+        public async Task<LessonDto> UpdateLesson(Guid lessonId, LessonDto lessonDto)
+        {
+            if (lessonId == Guid.Empty)
+            {
+                throw new ArgumentNullException("", Resource.IdIsEmpty);
+            }
+            if (lessonDto is null)
+            {
+                throw new ArgumentNullException("", Resource.ModelIsEmpty);
+            }
+            var lesson = await _timetableRepository.GetByIdAsync(lessonId);
+            if (lesson.Id != lessonDto.Id)
+            {                                               
+                throw new ArgumentException();          
+            }
+            var newLesson = _mapper.Map<Lesson>(lessonDto);
+            await _timetableRepository.UpdateAsync(lessonId, newLesson);
+            return newLesson is null ? throw new ArgumentNullException("", Resource.UpdateError) : _mapper.Map<LessonDto>(newLesson);
+
+        }
         private static string GetValue(SpreadsheetDocument doc, Cell cell)
         {
             string value = cell.CellValue.InnerText;
@@ -296,6 +367,7 @@ namespace TimetibleMicroservices.Services
             }
             return value;
         }
-        
+
+       
     }
 }

@@ -55,7 +55,7 @@ namespace TimetibleMicroservices.Controllers
             return Ok(await _timetableService.DeleteLesson(lessonId));
         }
 
-        [HttpGet]
+        [HttpPost]
         [Route("lesson/filtered")]
         [SwaggerResponse((int)HttpStatusCode.OK, Description = "Get filtered lessons", Type = typeof(ResultDto<List<LessonDto>>))]
         [SwaggerResponse((int)HttpStatusCode.InternalServerError)]
@@ -83,6 +83,14 @@ namespace TimetibleMicroservices.Controllers
             var result = await _timetableService.GetLessonById(lessonId);
             return Ok(result);
         }
-        
+        [HttpPut]
+        [Route("lesson/{lessonId:Guid}")]
+        [SwaggerResponse((int)HttpStatusCode.OK, Description = "Get lesson by id", Type = typeof(ResultDto<LessonDto>))]
+        [SwaggerResponse((int)HttpStatusCode.InternalServerError)]
+        public async Task<ActionResult<LessonDto>> UpdateLesson([FromRoute] Guid lessonId, [FromBody] LessonDto lessonDto)
+        {
+            var result = await _timetableService.UpdateLesson(lessonId, lessonDto);
+            return Ok(result);
+        }
     }
 }

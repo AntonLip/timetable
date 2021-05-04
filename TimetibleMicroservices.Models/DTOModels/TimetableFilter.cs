@@ -13,6 +13,7 @@ namespace TimetibleMicroservices.Models.DTOModels
     public class FilterFields
     {
         public string Lectural { get; set; }
+        public string AuditoreNumber { get; set; }
         public string Discipline { get; set; }
         public string Group { get; set; }
         public DateTime DateStart { get; set; }
