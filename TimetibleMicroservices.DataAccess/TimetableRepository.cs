@@ -54,7 +54,7 @@ namespace TimetibleMicroservices.DataAccess
             if (LessonFilter?.FilterBy?.DateEnd != DefaultDate)
             {
                 filter = filter & Builders<Lesson>.Filter.Lte(new ExpressionFieldDefinition<Lesson, DateTime>(x => x.LessonDate),
-                      (DateTime)LessonFilter?.FilterBy?.DateEnd);
+                      (DateTime)LessonFilter?.FilterBy?.DateEnd.AddDays(1));
             }
             
             return await GetCollection().Find(filter).ToListAsync(cancellationToken);

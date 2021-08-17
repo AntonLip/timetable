@@ -5,6 +5,7 @@ using Microsoft.Extensions.Logging;
 using Swashbuckle.AspNetCore.Annotations;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Net;
 using System.Threading.Tasks;
 using TimetibleMicroservices.Models.DTOModels;
@@ -63,7 +64,18 @@ namespace TimetibleMicroservices.Controllers
         {
             return Ok(await _timetableService.GetFilteredTimetable(lessonFilter));
         }
+        [HttpPost]
+        [Route("lesson/filteredDoc")]
+        [SwaggerResponse((int)HttpStatusCode.OK, Description = "Get filtered lessons in docx", Type = typeof(File))]
+        [SwaggerResponse((int)HttpStatusCode.InternalServerError)]
+        public async Task<IActionResult> GetFilteredLessonsInDocx([FromBody] LessonFilter lessonFilter)
+        {
+            var fileDto = await _timetableService.GetTimetableInDocxAsync(lessonFilter);
+            if (fileDto is null)
+                throw new ArgumentException();
 
+            return File(fileDto.FileData, fileDto.FileType,fileDto.FileName);               
+        }
         [HttpPost]
         [Route("lesson/addlesson")]
         [SwaggerResponse((int)HttpStatusCode.OK, Description = "Add lesson", Type = typeof(ResultDto<LessonDto>))]

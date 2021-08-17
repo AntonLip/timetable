@@ -1,6 +1,8 @@
 ﻿using AutoMapper;
+using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
+using DocumentFormat.OpenXml.Wordprocessing;
 using Microsoft.AspNetCore.Http;
 using System;
 using System.Collections.Generic;
@@ -11,6 +13,9 @@ using System.Threading.Tasks;
 using TimetibleMicroservices.Models.DBModels;
 using TimetibleMicroservices.Models.DTOModels;
 using TimetibleMicroservices.Models.Interfaces;
+using Run = DocumentFormat.OpenXml.Wordprocessing.Run;
+using Table = DocumentFormat.OpenXml.Wordprocessing.Table;
+using Text = DocumentFormat.OpenXml.Wordprocessing.Text;
 
 namespace TimetibleMicroservices.Services
 {
@@ -73,12 +78,12 @@ namespace TimetibleMicroservices.Services
                 throw new ArgumentNullException();
             }
             var lessons = await _timetableRepository.GetFilteredAsync(lessonFilter, cancellationToken);
-            if(lessons is null)
+            if (lessons is null)
             {
                 throw new ArgumentNullException();
             }
             var lessonDto = _mapper.Map<List<LessonDto>>(lessons);
-            return lessonDto.GroupBy(g => g.LessonDate).Select(g => g.ToList());
+            return lessonDto.OrderBy(p => p.LessonDate).GroupBy(g => g.LessonDate).Select(g => g.ToList());
         }
 
         public async Task<LessonDto> GetLessonById(Guid id, CancellationToken cancellationToken = default)
@@ -107,7 +112,7 @@ namespace TimetibleMicroservices.Services
                 throw new ArgumentException("", Resource.ValidationError);
 
             int count = 0;
-            
+
 
             string groupNumber = String.Empty;
             string disciplineName = String.Empty;
@@ -121,14 +126,14 @@ namespace TimetibleMicroservices.Services
             int lessonNumber = 0;
             string auditoreNumber = String.Empty;
             await _timetableRepository.DeleteAllLessons(cancellationToken);
-           
+
             using (var memoryStream = new MemoryStream())
             {
                 List<Lesson> lessons = new List<Lesson>();
                 await body.CopyToAsync(memoryStream);
                 using (var document = SpreadsheetDocument.Open(memoryStream, true))
                 {
-                    
+
                     //create the object for workbook part  
                     WorkbookPart wbPart = document.WorkbookPart;
                     //statement to get the count of the worksheet  
@@ -146,7 +151,7 @@ namespace TimetibleMicroservices.Services
                         if (row.RowIndex.Value != 0)
                         {
                             //var qq = Program.GetSharedStringItemById(wbPart ,0);
-                           
+
                             int idx = 1; int idy = 0;
                             foreach (Cell cell in row.Descendants<Cell>())
                             {
@@ -285,11 +290,11 @@ namespace TimetibleMicroservices.Services
                                             groupNumber != "441А" && groupNumber != "441Б" &&
                                             groupNumber != "451А" && groupNumber != "451Б")
                                         {
-                                           
+
                                             if (lecturalName != "" && disciplineName != "")
                                                 try
                                                 {
-                                                    
+
                                                     lessons.Add(new Lesson()
                                                     {
                                                         AuditoreNumber = auditoreNumber,
@@ -308,8 +313,8 @@ namespace TimetibleMicroservices.Services
                                                         LessonType = lessonType,
                                                         NumberOfWeek = numberOfWeek
                                                     });
-                                                    
-                                                    
+
+
                                                 }
                                                 catch (Exception e)
                                                 {
@@ -322,11 +327,11 @@ namespace TimetibleMicroservices.Services
                                 idx++;
                             }
                             //count = idx;
-                           
+
                         }
-                        
+
                     }
-                    
+
                 }
                 if (lessons.Count != 0)
                 {
@@ -334,8 +339,8 @@ namespace TimetibleMicroservices.Services
                     count = lessons.Count;
                 }
             }
-            
-            return count == 0 ? throw new ArgumentNullException("", Resource.UpdateError) : count ;
+
+            return count == 0 ? throw new ArgumentNullException("", Resource.UpdateError) : count;
         }
 
         public async Task<LessonDto> UpdateLesson(Guid lessonId, LessonDto lessonDto)
@@ -350,14 +355,104 @@ namespace TimetibleMicroservices.Services
             }
             var lesson = await _timetableRepository.GetByIdAsync(lessonId);
             if (lesson.Id != lessonDto.Id)
-            {                                               
-                throw new ArgumentException();          
+            {
+                throw new ArgumentException();
             }
             var newLesson = _mapper.Map<Lesson>(lessonDto);
             await _timetableRepository.UpdateAsync(lessonId, newLesson);
             return newLesson is null ? throw new ArgumentNullException("", Resource.UpdateError) : _mapper.Map<LessonDto>(newLesson);
 
         }
+
+        public async Task<FileDto> GetTimetableInDocxAsync(LessonFilter lessonFilter, CancellationToken cancellationToken = default)
+        {
+            FileDto fileDto = new FileDto();
+            var timetableList =await GetFilteredTimetable(lessonFilter, cancellationToken);
+            if (timetableList.Count() == 0)
+                throw new ArgumentNullException();
+            using (MemoryStream memoryStream = new MemoryStream())
+            {
+                using (WordprocessingDocument wordDocument =
+                        WordprocessingDocument.Create(memoryStream, WordprocessingDocumentType.Document, true))
+                {
+                    MainDocumentPart mainPart = wordDocument.AddMainDocumentPart();
+
+                    mainPart.Document = new Document(new Body());
+
+                    Table table = new Table();
+
+                    TableRow tr1 = new TableRow();
+
+                    TableCell tc11 = new TableCell();
+                    tc11.Append(new Paragraph(new Run(new Text("Date of lesson"))));
+                    tr1.Append(tc11);
+
+                    TableCell tc12 = new TableCell();
+                    tc12.Append(new Paragraph(new Run(new Text("Count of lesson"))));
+                    tr1.Append(tc12);
+
+                    TableCell tc13 = new TableCell();
+                    tc13.Append(new Paragraph(new Run(new Text("Type of lesson"))));
+                    tr1.Append(tc13);
+
+                    TableCell tc14 = new TableCell();
+                    tc14.Append(new Paragraph(new Run(new Text("Disciplines name"))));
+                    tr1.Append(tc14);
+
+                    TableCell tc15 = new TableCell();
+                    tc15.Append(new Paragraph(new Run(new Text("Auditore"))));
+                    tr1.Append(tc15);
+
+                    table.Append(tr1);
+
+                    foreach (var lesson in timetableList)
+
+                    {
+                        foreach (var l in lesson)
+                        {
+                            TableRow tr2 = new TableRow();
+
+
+                            TableCell tc21 = new TableCell();
+                            tc21.Append(new Paragraph(new Run(new Text(l.LessonDate.ToString()))));
+                            tr2.Append(tc21);
+
+                            TableCell tc22 = new TableCell();
+                            ParagraphProperties pp22 = new ParagraphProperties();
+                            tc22.Append(new Paragraph(new Run(new Text(l.LessonInDayNumber.ToString()))));
+                            tr2.Append(tc22);
+
+
+                            TableCell tc23 = new TableCell();
+                            tc23.Append(new Paragraph(new Run(new Text(l.LessonType + " " + l.LessonNumber))));
+                            tr2.Append(tc23);
+
+                            TableCell tc24 = new TableCell();
+                            tc24.Append(new Paragraph(new Run(new Text(l.DisciplineName))));
+                            tr2.Append(tc24);
+
+                            TableCell tc25 = new TableCell();
+                            tc25.Append(new Paragraph(new Run(new Text(l.AuditoreNumber))));
+                            tr2.Append(tc25);
+
+                            table.Append(tr2);
+                        }
+                    }
+                        
+
+                    mainPart.Document.Body.Append(table);
+
+                    mainPart.Document.Save();
+                    
+                }
+                fileDto.FileData = memoryStream.ToArray();
+                fileDto.FileName = "timetable.docx";
+                fileDto.FileType = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+                return fileDto;
+            }
+        }
+
+
         private static string GetValue(SpreadsheetDocument doc, Cell cell)
         {
             string value = cell.CellValue.InnerText;
@@ -368,6 +463,5 @@ namespace TimetibleMicroservices.Services
             return value;
         }
 
-       
     }
 }

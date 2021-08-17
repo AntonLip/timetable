@@ -17,5 +17,6 @@ namespace TimetibleMicroservices.Models.Interfaces
         Task<IEnumerable<IEnumerable<LessonDto>>> GetFilteredTimetable(LessonFilter lessonFilter, CancellationToken cancellationToken = default);
         Task<int> CreateTimetableFromFile(IFormFile body, CancellationToken cancellationToken = default);
         Task<LessonDto> UpdateLesson(Guid lessonId, LessonDto lessonDto);
+        Task<FileDto> GetTimetableInDocxAsync(LessonFilter lessonFilter, CancellationToken cancellationToken = default);
     }
 }
