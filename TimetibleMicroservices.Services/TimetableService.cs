@@ -60,16 +60,6 @@ namespace TimetibleMicroservices.Services
             return !(history is null) ? _mapper.Map<LessonDto>(history) : throw new ArgumentNullException();
         }
 
-        public async Task<LessonDto> DeleteTimetable(Guid id, CancellationToken cancellationToken = default)
-        {
-            if (id == Guid.Empty)
-            {
-                throw new ArgumentNullException("", Resource.IdIsEmpty);
-            }
-
-            var lesson = await _timetableRepository.RemoveAsync(id, cancellationToken);
-            return !(lesson is null) ? _mapper.Map<LessonDto>(lesson) : throw new ArgumentNullException();
-        }
 
         public async Task<IEnumerable<IEnumerable<LessonDto>>> GetFilteredTimetable(LessonFilter lessonFilter, CancellationToken cancellationToken = default)
         {
@@ -343,7 +333,7 @@ namespace TimetibleMicroservices.Services
             return count == 0 ? throw new ArgumentNullException("", Resource.UpdateError) : count;
         }
 
-        public async Task<LessonDto> UpdateLesson(Guid lessonId, LessonDto lessonDto)
+        public async Task<LessonDto> UpdateLesson(Guid lessonId, LessonDto lessonDto, CancellationToken cancellationToken = default)
         {
             if (lessonId == Guid.Empty)
             {
@@ -359,7 +349,7 @@ namespace TimetibleMicroservices.Services
                 throw new ArgumentException();
             }
             var newLesson = _mapper.Map<Lesson>(lessonDto);
-            await _timetableRepository.UpdateAsync(lessonId, newLesson);
+            await _timetableRepository.UpdateAsync(lessonId, newLesson, cancellationToken);
             return newLesson is null ? throw new ArgumentNullException("", Resource.UpdateError) : _mapper.Map<LessonDto>(newLesson);
 
         }

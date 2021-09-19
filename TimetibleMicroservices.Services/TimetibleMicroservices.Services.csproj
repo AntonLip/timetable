@@ -10,6 +10,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\TimetibleMicroservices.DataAccess\TimetibleMicroservices.DataAccess.csproj" />
     <ProjectReference Include="..\TimetibleMicroservices.Models\TimetibleMicroservices.Models.csproj" />
   </ItemGroup>
 
