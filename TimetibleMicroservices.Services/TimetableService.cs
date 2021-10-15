@@ -59,8 +59,10 @@ namespace TimetibleMicroservices.Services
 
             return !(history is null) ? _mapper.Map<LessonDto>(history) : throw new ArgumentNullException();
         }
-
-
+        public async Task DeleteTimetable(CancellationToken cancellationToken = default)
+        {
+            await _timetableRepository.DeleteAllLessons(cancellationToken);
+        }
         public async Task<IEnumerable<IEnumerable<LessonDto>>> GetFilteredTimetable(LessonFilter lessonFilter, CancellationToken cancellationToken = default)
         {
             if (lessonFilter is null)
@@ -107,9 +109,6 @@ namespace TimetibleMicroservices.Services
             string groupNumber = String.Empty;
             string disciplineName = String.Empty;
             string lecturalName = String.Empty;
-            int numberOfWeek = 0;
-            string dayOfWeek = String.Empty;
-            int dayInWeekNumber = 0;
             DateTime lessonDate = DateTime.Now;
             int lessonInDayNumber = 0;
             string lessonType = String.Empty;
@@ -124,50 +123,24 @@ namespace TimetibleMicroservices.Services
                 using (var document = SpreadsheetDocument.Open(memoryStream, true))
                 {
 
-                    //create the object for workbook part  
                     WorkbookPart wbPart = document.WorkbookPart;
-                    //statement to get the count of the worksheet  
-                    int worksheetcount = document.WorkbookPart.Workbook.Sheets.Count();
-                    //statement to get the sheet object  
                     Sheet mysheet = (Sheet)document.WorkbookPart.Workbook.Sheets.ChildElements.GetItem(0);
-                    //statement to get the worksheet object by using the sheet id  
                     Worksheet Worksheet = ((WorksheetPart)wbPart.GetPartById(mysheet.Id)).Worksheet;
-                    //statement to get the sheetdata which contains the rows and cell in table  
                     IEnumerable<Row> Rows = Worksheet.GetFirstChild<SheetData>().Descendants<Row>();
 
-                    //Loop through the Worksheet rows
                     foreach (var row in Rows)
                     {
                         if (row.RowIndex.Value != 0)
                         {
-                            //var qq = Program.GetSharedStringItemById(wbPart ,0);
-
                             int idx = 1; int idy = 0;
                             foreach (Cell cell in row.Descendants<Cell>())
                             {
 
-                                var val = TimetableService.GetValue(document, cell);
+                                var val = GetValue(document, cell);
                                 if (val == "Неделя")
                                     break;
                                 if (idx < 8)
-                                {
-                                    if (idx == 1)
-                                    {
-                                        int x;
-                                        Int32.TryParse(val, out x);
-                                        numberOfWeek = x;
-                                    }
-                                    if (idx == 2)
-                                    {
-                                        dayOfWeek = val;
-                                    }
-
-                                    if (idx == 3)
-                                    {
-                                        int x;
-                                        Int32.TryParse(val, out x);
-                                        dayInWeekNumber = x;
-                                    }
+                                {                                    
                                     if (idx == 4)
                                     {
                                         int day, month, year;
@@ -239,7 +212,6 @@ namespace TimetibleMicroservices.Services
                                 }
                                 else
                                 {
-
                                     idy++;
                                     if (idy == 1)
                                     {
@@ -249,7 +221,6 @@ namespace TimetibleMicroservices.Services
                                     {
                                         disciplineName = val;
                                     }
-
                                     if (idy == 3)
                                     {
                                         int x = 0;
@@ -275,10 +246,8 @@ namespace TimetibleMicroservices.Services
                                     if (idy == 7)
                                     {
                                         idy = 0;
-                                        //await sendLessonToAPIAsync(lesson);
-                                        if (groupNumber != "431А" && groupNumber != "431Б" &&
-                                            groupNumber != "441А" && groupNumber != "441Б" &&
-                                            groupNumber != "451А" && groupNumber != "451Б")
+                                        if (groupNumber == "434" || groupNumber == "432" || groupNumber == "433" ||
+                                            groupNumber == "443" && groupNumber == "442" && groupNumber == "444")
                                         {
 
                                             if (lecturalName != "" && disciplineName != "")
@@ -288,20 +257,14 @@ namespace TimetibleMicroservices.Services
                                                     lessons.Add(new Lesson()
                                                     {
                                                         AuditoreNumber = auditoreNumber,
-                                                        DayInWeekNumber = dayInWeekNumber,
-                                                        DayOfWeek = dayOfWeek,
                                                         DisciplineName = disciplineName,
                                                         GroupNumber = groupNumber,
                                                         IsDeleted = false,
                                                         LecturalName = lecturalName,
-                                                        InfoForcadets = null,
-                                                        InfoForEngeneers = null,
-                                                        InfoForLectural = null,
                                                         LessonDate = lessonDate,
                                                         LessonInDayNumber = lessonInDayNumber,
                                                         LessonNumber = lessonNumber,
                                                         LessonType = lessonType,
-                                                        NumberOfWeek = numberOfWeek
                                                     });
 
 
@@ -316,8 +279,7 @@ namespace TimetibleMicroservices.Services
                                 }
                                 idx++;
                             }
-                            //count = idx;
-
+                            
                         }
 
                     }
@@ -442,7 +404,14 @@ namespace TimetibleMicroservices.Services
             }
         }
 
-
+        public async Task<List<LessonDto>> InsertManyLessons(List<AddLessonDto> lessonDtos, CancellationToken cancellationToken = default)
+        {
+            if (lessonDtos is null)
+                throw new ArgumentException("", Resource.ModelIsEmpty);
+            var lessonsDB = _mapper.Map<List<Lesson>>(lessonDtos);
+            await _timetableRepository.InsertManyLesson(lessonsDB, cancellationToken);
+            return _mapper.Map<List<LessonDto>>(lessonsDB);
+        }
         private static string GetValue(SpreadsheetDocument doc, Cell cell)
         {
             string value = cell.CellValue.InnerText;
