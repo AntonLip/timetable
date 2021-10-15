@@ -111,7 +111,6 @@ namespace TimetableMicroservices.Service.Test
                     new LessonDto
                     {
                         AuditoreNumber = RandomString(10),
-                        DayOfWeek = ((DayOfWeek)_random.Next(1, 7)).ToString(),
                         DisciplineName = RandomString(10),
                         GroupNumber = RandomString(10),
                         Id = Guid.NewGuid(),
