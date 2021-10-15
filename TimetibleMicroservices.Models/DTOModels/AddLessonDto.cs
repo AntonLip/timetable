@@ -6,9 +6,7 @@ namespace TimetibleMicroservices.Models.DTOModels
 {
     public class AddLessonDto
     {
-        public int NumberOfWeek { get; set; }
-        public string DayOfWeek { get; set; }
-        public int DayInWeekNumber { get; set; }
+        
         public int LessonNumber { get; set; }
         public string GroupNumber { get; set; }
         public int LessonInDayNumber { get; set; }
@@ -19,9 +17,5 @@ namespace TimetibleMicroservices.Models.DTOModels
 
         public string AuditoreNumber { get; set; }
 
-
-        public string InfoForLectural { get; set; }
-        public string InfoForEngeneers { get; set; }
-        public string InfoForcadets { get; set; }
     }
 }
