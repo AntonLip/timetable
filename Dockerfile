@@ -16,6 +16,7 @@ FROM build AS publish
 RUN dotnet publish "TimetibleMicroservices.csproj" -c Release -o /app/publish
 
 FROM base AS final
+ENV CONNECTION_STRING=""
 WORKDIR /app
 COPY --from=publish /app/publish .
 ENTRYPOINT ["dotnet", "TimetibleMicroservices.dll"]
